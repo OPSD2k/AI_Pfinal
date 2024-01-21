@@ -84,7 +84,7 @@ class FingerGun:
 
 class DisjointSet:
     def __init__(self, size):
-        self.parent = list(range(size))
+        self.parent = [i for i in range(size)]
 
     def find(self, i):
         if self.parent[i] != i:
@@ -100,20 +100,38 @@ class RingMaze:
     def __init__(self, rings, sectors):
         self.rings = rings
         self.sectors = sectors
-        self.maze = [[False for _ in range(sectors)] for _ in range(rings)]
+        self.maze = [[{'wall': True, 'radial_walls': [True, True]} for _ in range(sectors)] for _ in range(rings)]
         self.generate_maze()
 
+    def get_sector_info(self, ring, sector):
+        return self.maze[ring][sector]
+
     def generate_maze(self):
-        # Initialize all sectors with walls
+        visited_cells = []
+        # Example logic: mark all sectors as walls and set radial walls
         for ring in range(self.rings):
             for sector in range(self.sectors):
-                self.maze[ring][sector] = True
+                # Set every sector as a wall
+                self.maze[ring][sector]['wall'] = True
 
+                # Set radial walls for each sector
+                self.maze[ring][sector]['radial_walls'] = [True, True]  # [start, end] of sector
+
+        """
         # Create a simple spiral pattern, ensuring solvability
         for ring in range(self.rings):
             # Open a sector in each ring to create a spiral path
             open_sector = (ring * 2) % self.sectors
             self.maze[ring][open_sector] = False
+        """
+
+        #Aldous-Broder random maze generation
+        #choose a random cell
+        visited_cells.append(self.maze[random.randint(0, self.rings)][random.randint(0, self.sectors)])
+        print(visited_cells)
+
+        #travel to random neighbour
+
 
     def is_wall(self, ring, sector):
         return self.maze[ring][sector]
@@ -190,25 +208,22 @@ class MazeGame:
             inner_radius = ring * (WINDOW_SIZE // 2) // self.maze.rings
             outer_radius = (ring + 1) * (WINDOW_SIZE // 2) // self.maze.rings
 
-            previous_sector_was_wall = self.maze.is_wall(ring,
-                                                         self.maze.sectors - 1)  # Check the last sector of the ring
-
             for sector in range(self.maze.sectors):
-                is_wall = self.maze.is_wall(ring, sector)
+                sector_info = self.maze.get_sector_info(ring, sector)
+                start_angle = math.radians(sector * (360 / self.maze.sectors))
+                end_angle = math.radians((sector + 1) * (360 / self.maze.sectors))
 
-                if is_wall:
-                    start_angle = math.radians(sector * (360 / self.maze.sectors))
-                    end_angle = math.radians((sector + 1) * (360 / self.maze.sectors))
+                # Draw angular wall if sector is a wall
+                if sector_info['wall']:
                     bounding_rect = [center_x - outer_radius, center_y - outer_radius, 2 * outer_radius,
                                      2 * outer_radius]
                     pygame.draw.arc(self.screen, BLACK, bounding_rect, start_angle, end_angle, wall_thickness)
 
-                # Draw radial wall at the start of a curved wall if the previous sector was not a wall
-                if is_wall and not previous_sector_was_wall:
-                    self.draw_radial_wall(center_x, center_y, inner_radius, outer_radius,
-                                          math.radians(sector * (360 / self.maze.sectors)), wall_thickness)
-
-                previous_sector_was_wall = is_wall
+                # Draw radial walls based on sector_info
+                if sector_info['radial_walls'][0]:
+                    self.draw_radial_wall(center_x, center_y, inner_radius, outer_radius, start_angle, wall_thickness)
+                if sector_info['radial_walls'][1]:
+                    self.draw_radial_wall(center_x, center_y, inner_radius, outer_radius, end_angle, wall_thickness)
 
     def draw_radial_wall(self, center_x, center_y, inner_radius, outer_radius, angle, thickness):
         start_point = (center_x + inner_radius * math.cos(angle), center_y + inner_radius * math.sin(angle))
@@ -259,7 +274,7 @@ def main():
     start = (0, 0)  # Start position
     end = (size - 1, size - 1)  # End position
 
-    ring_maze = RingMaze(10, 10)  # size, sectors
+    ring_maze = RingMaze(10, 10)  # rings, sectors
     solver = AStarSolver(ring_maze)
     path = solver.find_path(start, end)
     game = MazeGame(ring_maze, path)

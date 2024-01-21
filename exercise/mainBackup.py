@@ -82,6 +82,20 @@ class FingerGun:
             return None  # "break"
 
 
+class DisjointSet:
+    def __init__(self, size):
+        self.parent = list(range(size))
+
+    def find(self, i):
+        if self.parent[i] != i:
+            self.parent[i] = self.find(self.parent[i])
+        return self.parent[i]
+
+    def union(self, i, j):
+        pi, pj = self.find(i), self.find(j)
+        if pi != pj:
+            self.parent[pi] = pj
+
 class RingMaze:
     def __init__(self, rings, sectors):
         self.rings = rings
@@ -90,36 +104,16 @@ class RingMaze:
         self.generate_maze()
 
     def generate_maze(self):
+        # Initialize all sectors with walls
         for ring in range(self.rings):
-            # Initialize all sectors with walls
             for sector in range(self.sectors):
                 self.maze[ring][sector] = True
 
-            # Determine the number of gaps
-            if ring == self.rings - 1:
-                # Only one opening for the outermost ring
-                num_gaps = 1
-            else:
-                # Randomly choose between 2 to 4 openings for other rings
-                num_gaps = random.randint(2, 4)
-
-            # Create gaps ensuring no two gaps are adjacent
-            gaps_created = 0
-            attempts = 0
-            while gaps_created < num_gaps and attempts < self.sectors * 2:
-                gap = random.randint(0, self.sectors - 1)
-                left_neighbor = (gap - 1) % self.sectors
-                right_neighbor = (gap + 1) % self.sectors
-                # Place a gap only if both neighbors are walls
-                if self.maze[ring][left_neighbor] and self.maze[ring][right_neighbor]:
-                    self.maze[ring][gap] = False
-                    gaps_created += 1
-                attempts += 1
-
-            # Special case for the last ring to ensure there's one gap
-            if ring == self.rings - 1 and gaps_created == 0:
-                gap = random.randint(0, self.sectors - 1)
-                self.maze[ring][gap] = False
+        # Create a simple spiral pattern, ensuring solvability
+        for ring in range(self.rings):
+            # Open a sector in each ring to create a spiral path
+            open_sector = (ring * 2) % self.sectors
+            self.maze[ring][open_sector] = False
 
     def is_wall(self, ring, sector):
         return self.maze[ring][sector]
@@ -190,46 +184,36 @@ class MazeGame:
 
     def draw_maze(self):
         center_x, center_y = WINDOW_SIZE // 2, WINDOW_SIZE // 2
-        # Define the thickness of the walls
         wall_thickness = max(1, WINDOW_SIZE // (8 * self.maze.rings))
 
-        # Draw the angular walls as arcs
         for ring in range(self.maze.rings):
-            # print(ring)
-            sectors_drawn = 0
             inner_radius = ring * (WINDOW_SIZE // 2) // self.maze.rings
             outer_radius = (ring + 1) * (WINDOW_SIZE // 2) // self.maze.rings
 
-            # only one gap in outer ring
+            previous_sector_was_wall = self.maze.is_wall(ring,
+                                                         self.maze.sectors - 1)  # Check the last sector of the ring
+
             for sector in range(self.maze.sectors):
-                print("number of sectors is " + str(self.maze.sectors))
-                """
-                if ring == self.maze.rings - 1:  # outer wall, final ring
-                    sector_is_wall = True
-                else:
-                    sector_is_wall = self.maze.is_wall(ring, sector)  # returns true or false
-                # ensure every ring has at least 1 gap. There can't be the max number of sectors
-                if sector_is_wall and sectors_drawn < self.maze.sectors - 1:"""
-                if self.maze.is_wall(ring, sector):
+                is_wall = self.maze.is_wall(ring, sector)
+
+                if is_wall:
                     start_angle = math.radians(sector * (360 / self.maze.sectors))
                     end_angle = math.radians((sector + 1) * (360 / self.maze.sectors))
-
-                    # if (start)
-                    # Define the bounding rectangle for the arc
                     bounding_rect = [center_x - outer_radius, center_y - outer_radius, 2 * outer_radius,
                                      2 * outer_radius]
                     pygame.draw.arc(self.screen, BLACK, bounding_rect, start_angle, end_angle, wall_thickness)
-                    sectors_drawn += 1
-            # print(sectors_drawn)
 
-        # Draw radial walls
-        for sector in range(self.maze.sectors):
-            for ring in range(self.maze.rings - 1):
-                if self.maze.is_wall(ring, sector) != self.maze.is_wall(ring + 1, sector):
-                    angle = math.radians(sector * (360 / self.maze.sectors))
-                    inner_point = (center_x + inner_radius * math.cos(angle), center_y + inner_radius * math.sin(angle))
-                    outer_point = (center_x + outer_radius * math.cos(angle), center_y + outer_radius * math.sin(angle))
-                    pygame.draw.line(self.screen, BLACK, inner_point, outer_point, wall_thickness)
+                # Draw radial wall at the start of a curved wall if the previous sector was not a wall
+                if is_wall and not previous_sector_was_wall:
+                    self.draw_radial_wall(center_x, center_y, inner_radius, outer_radius,
+                                          math.radians(sector * (360 / self.maze.sectors)), wall_thickness)
+
+                previous_sector_was_wall = is_wall
+
+    def draw_radial_wall(self, center_x, center_y, inner_radius, outer_radius, angle, thickness):
+        start_point = (center_x + inner_radius * math.cos(angle), center_y + inner_radius * math.sin(angle))
+        end_point = (center_x + outer_radius * math.cos(angle), center_y + outer_radius * math.sin(angle))
+        pygame.draw.line(self.screen, BLACK, start_point, end_point, thickness)
 
     def draw_path(self):
         center = (WINDOW_SIZE // 2, WINDOW_SIZE // 2)
