@@ -40,9 +40,6 @@ class Ball:
             self.vel_y += self.acc_g * self.dt
             self.y += self.vel_y * self.dt
 
-        else:
-            # Reset velocity when not falling
-            self.vel_y = 0
 
     def collision(self):
         # we know where the holes in the maze are.
@@ -55,13 +52,19 @@ class Ball:
         angle = self.maze.rotation_angle % 360
         current_sector = int(angle / (360 / self.maze.sectors))
         current_sector = min(max(current_sector, 0), self.maze.sectors - 1)
-        print(current_ring, current_sector)
-        print(self.maze.is_wall(current_ring, 7-current_sector)) #wtf???? Why 7?
+        #print(current_ring, current_sector)
+        #print(self.maze.is_wall(current_ring, 7-current_sector)) #wtf???? Why 7?
+        #print(self.falls_number)
+
+        if not self.maze.is_wall(current_ring, 7 - current_sector):
+            self.fall = True
 
         if distance_from_centre >= (self.falls_number + 1) * (WINDOW_SIZE // 2) // 10 - 2 * self.radius:
             # inner_radius = ring * (WINDOW_SIZE // 2) // self.maze.rings
             self.fall = False
             self.falls_number += 1
+            # Reset velocity when not falling
+            self.vel_y = 0
 
     def distance_from_centre(self, y):
         return y - WINDOW_SIZE // 2
