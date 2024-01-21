@@ -109,6 +109,7 @@ class RingMaze:
     def generate_maze(self):
         visited_cells = []
         # Example logic: mark all sectors as walls and set radial walls
+        #middle right of maze is (9, 0) (ring, sector). Count up anti-clockwise. 10 is out of range
         for ring in range(self.rings):
             for sector in range(self.sectors):
                 # Set every sector as a wall
@@ -125,18 +126,63 @@ class RingMaze:
             self.maze[ring][open_sector] = False
         """
 
+
+        #self.maze[8][1]['wall'] = False
+
+        #open a random wall in the outer ring to make an exit
+        self.maze[self.rings - 1][random.randint(0, self.sectors - 1)]['wall'] = False
+
         #Aldous-Broder random maze generation
         #choose a random cell
-        visited_cells.append(self.maze[random.randint(0, self.rings)][random.randint(0, self.sectors)])
+        random_ring = random.randint(0, self.rings - 1) #10 is out of range
+        random_sector = random.randint(0, self.sectors - 1)
+        visited_cells.append((random_ring, random_sector))
+        print("Start cell")
         print(visited_cells)
 
         #travel to random neighbour
+        print(self.get_neighbours(random_ring, random_sector))
+        i = random.randint(0, len(self.get_neighbours(random_ring, random_sector)) - 1) #neighbour list
+        random_neighbour = self.get_neighbours(random_ring, random_sector)[i]
+        print(random_neighbour)
+
+        #if neighbour not visited
+        if random_neighbour not in visited_cells:
+            visited_cells.append(random_neighbour)
+            print("neighbour added:")
+            print(visited_cells)
+            #remove the appropriate walls
+            #if the ring number is different, remove an angular wall
+            #can put this in one for loop
+            if random_neighbour[0] != visited_cells[0][0]:
+                self.maze[random_neighbour[0]][random_neighbour[1]]['wall'] = False
+                print("wall changed a")
+
+            # if sector number is different, remove a radial wall
+            #anti-clockwise wall
+            if random_neighbour[1] > visited_cells[0][1]:
+                self.maze[random_neighbour[0]][random_neighbour[1]]['radial_walls'] = [False, True]
+                #remove other wall in same place as well to prevent overlap
+                self.maze[random_neighbour[0]][random_neighbour[1] - 1]['radial_walls'] = [True, False]
+                print("wall changed b")
+
+            #clockwise wall
+            if random_neighbour[1] < visited_cells[0][1]:
+                self.maze[random_neighbour[0]][random_neighbour[1]]['radial_walls'] = [False, True]
+                # remove other wall in same place as well to prevent overlap
+                self.maze[random_neighbour[0]][random_neighbour[1] - 1]['radial_walls'] = [True, False]
+                print("wall changed c")
+
+
+
+
+
 
 
     def is_wall(self, ring, sector):
         return self.maze[ring][sector]
 
-    def get_neighbors(self, ring, sector):
+    def get_neighbours(self, ring, sector):
         neighbors = []
         # Check radial neighbors
         if ring > 0:
@@ -165,16 +211,16 @@ class AStarSolver:
             if current == end:
                 return self.reconstruct_path(came_from, current)
 
-            for neighbor in self.maze.get_neighbors(*current):
-                if self.maze.is_wall(*neighbor):
+            for neighbour in self.maze.get_neighbours(*current):
+                if self.maze.is_wall(*neighbour):
                     continue
                 tentative_g_score = g_score[current] + 1
-                if tentative_g_score < g_score.get(neighbor, float("inf")):
-                    came_from[neighbor] = current
-                    g_score[neighbor] = tentative_g_score
-                    f_score[neighbor] = tentative_g_score + self.calculate_heuristic(neighbor, end)
-                    if neighbor not in [i[1] for i in open_set]:
-                        heapq.heappush(open_set, (f_score[neighbor], neighbor))
+                if tentative_g_score < g_score.get(neighbour, float("inf")):
+                    came_from[neighbour] = current
+                    g_score[neighbour] = tentative_g_score
+                    f_score[neighbour] = tentative_g_score + self.calculate_heuristic(neighbour, end)
+                    if neighbour not in [i[1] for i in open_set]:
+                        heapq.heappush(open_set, (f_score[neighbour], neighbour))
         return []
 
     def calculate_heuristic(self, cell, end):
