@@ -44,71 +44,24 @@ class Ball:
             # Reset velocity when not falling
             self.vel_y = 0
 
-    def check_for_fall(self):
-        center_x, center_y = WINDOW_SIZE // 2, WINDOW_SIZE // 2
-        dx, dy = self.x - center_x, self.y - center_y
-        distance_from_center = math.sqrt(dx**2 + dy**2)
-
-        # Calculate the ring based on distance from center
-        ring = int((distance_from_center / (WINDOW_SIZE // 2)) * self.maze.rings)
-        # Calculate the sector based on angle and maze's rotation
-        angle = (math.degrees(math.atan2(dy, dx)) - self.maze.rotation_angle) % 360
-        sector = int(angle / (360 / self.maze.sectors))
-
-        # Ensure the ring and sector are within bounds
-        ring = min(max(ring, 0), self.maze.rings - 1)
-        sector = min(max(sector, 0), self.maze.sectors - 1)
-
-        # Determine the inner radius of the current ring
-        inner_radius = ring * (WINDOW_SIZE // 2) // self.maze.rings
-
-        if distance_from_center > inner_radius and not self.maze.is_wall(ring, sector):
-            self.fall = True
-            # Adjust the velocity for falling
-            self.vel_y += self.acc_g * self.dt
-        elif distance_from_center <= inner_radius:
-            self.fall = False
-            # Reset the velocity if not falling
-            self.vel_y = 0
-
-        #return fall?
-
-    def collision(self):
-        # Calculate distance from the center
-        distance_from_center = self.distance_from_centre(self.y)
-
-        # Determine the current ring based on distance from center
-        current_ring = int((distance_from_center / (WINDOW_SIZE // 2)) * self.maze.rings)
-        current_ring = min(max(current_ring, 0), self.maze.rings - 1)
-
-        # Calculate the ball's sector based on its position and the maze's rotation
-        center_x, center_y = WINDOW_SIZE // 2, WINDOW_SIZE // 2
-        dx, dy = self.x - center_x, self.y - center_y
-        angle = (math.degrees(math.atan2(dy, dx)) - self.maze.rotation_angle) % 360
-        current_sector = int(angle / (360 / self.maze.sectors))
-        current_sector = min(max(current_sector, 0), self.maze.sectors - 1)
-        print(current_sector)
-        print(self.maze.is_wall(current_ring, current_sector))
-
-        # Check if the ball is in a cell with a hole and fall accordingly
-        if distance_from_center >= (self.falls_number + 1) * (WINDOW_SIZE // 2) // 10 - 2 * self.radius:
-            if self.maze.is_wall(current_ring, current_sector):
-                self.fall = False
-                self.falls_number += 1
-
-            else:
-                self.fall = True
-                print("FALLING")
-
-    """
     def collision(self):
         # we know where the holes in the maze are.
         # if ball is in a cell with a hole, fall down until specific distance from centre
-        if self.distance_from_centre(self.y) >= (self.falls_number + 1) * (WINDOW_SIZE // 2) // 10 - 2 * self.radius:
+        distance_from_centre = self.distance_from_centre(self.y)
+
+        # Calculate the current ring and sector
+        current_ring = int((distance_from_centre / (WINDOW_SIZE // 2)) * self.maze.rings)
+        current_ring = min(max(current_ring, 0), self.maze.rings - 1)
+        angle = self.maze.rotation_angle % 360
+        current_sector = int(angle / (360 / self.maze.sectors))
+        current_sector = min(max(current_sector, 0), self.maze.sectors - 1)
+        print(current_ring, current_sector)
+        print(self.maze.is_wall(current_ring, 7-current_sector)) #wtf???? Why 7?
+
+        if distance_from_centre >= (self.falls_number + 1) * (WINDOW_SIZE // 2) // 10 - 2 * self.radius:
             # inner_radius = ring * (WINDOW_SIZE // 2) // self.maze.rings
             self.fall = False
             self.falls_number += 1
-    """
 
     def distance_from_centre(self, y):
         return y - WINDOW_SIZE // 2
