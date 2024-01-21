@@ -295,6 +295,25 @@ class AStarSolver:
         path.append(current)
         return path[::-1]  # Return reversed path
 
+class Flashlight:
+    def __init__(self, screen, size, radius, alpha=200):
+        self.screen = screen
+        self.radius = radius
+        self.alpha = alpha
+
+        # Create a surface for the flashlight mask
+        self.flashlight_mask = pygame.Surface(size, pygame.SRCALPHA)
+
+    def draw(self, position):
+        # Reset the flashlight mask
+        self.flashlight_mask.fill((0, 0, 0, self.alpha))
+
+        # Draw a transparent circle at the position on the mask
+        pygame.draw.circle(self.flashlight_mask, (0, 0, 0, 0), position, self.radius)
+
+        # Blit the flashlight mask onto the screen
+        self.screen.blit(self.flashlight_mask, (0, 0))
+
 
 class MazeGame:
     def __init__(self, maze, ball, screen):
@@ -303,6 +322,7 @@ class MazeGame:
         self.maze = maze
         self.screen = screen
         pygame.display.set_caption("Ring-Shaped Maze Solver")
+        self.flashlight = Flashlight(screen, (WINDOW_SIZE, WINDOW_SIZE), 70)  # Adjust radius as needed
 
     def run_game_loop(self):
         running = True
@@ -315,10 +335,14 @@ class MazeGame:
                     #self.handle_keypress(event)
                     self.handle_mouse_move(event)
 
-
+            # Clear the screen and draw the maze and ball
+            self.screen.fill(BLACK)
             self.maze.draw_maze()
             self.maze.draw_path()
             self.ball.update()
+
+            # Draw the flashlight effect
+            self.flashlight.draw((int(self.ball.x), int(self.ball.y)))
             pygame.display.flip()
 
     def handle_keypress(self, event):
