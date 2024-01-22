@@ -3,7 +3,8 @@ import random
 import heapq
 import math
 import numpy as np
-import cv2 as cv
+
+from Hand import Hand
 
 # Constants
 WHITE = (255, 255, 255)
@@ -237,6 +238,9 @@ class RingMaze:
         # Keep the angle within 0-360 degrees in case of multiple whole rotations
         self.rotation_angle %= 360
 
+    def set_rotation(self, angle):
+        self.rotation_angle = angle
+
 
 class Search:
     def __init__(self, maze, start, target):
@@ -320,11 +324,12 @@ class Flashlight:
 
 
 class MazeGame:
-    def __init__(self, maze, ball, screen):
+    def __init__(self, maze, ball, screen, hand):
         self.last_mouse_x = None  # first mouse position
         self.ball = ball
         self.maze = maze
         self.screen = screen
+        self.hand = hand
         pygame.display.set_caption("Ring-Shaped Maze Solver")
         self.flashlight = Flashlight(screen, (WINDOW_SIZE, WINDOW_SIZE), 70)  # Adjust radius as needed
 
@@ -338,6 +343,12 @@ class MazeGame:
                 else:
                     #self.handle_keypress(event)
                     self.handle_mouse_move(event)
+
+            #handle hand rotation input every frame
+            rotation_angle = self.hand.process_frame()
+            print(f"Rotation Angle: {rotation_angle}")
+            self.maze.set_rotation(rotation_angle) #copy hand rotation for maze
+
 
             # Clear the screen and draw the maze and ball
             self.screen.fill(BLACK)
@@ -388,12 +399,14 @@ def main():
     target = (rings - 1, random.randint(0, sectors - 1))
 
     screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))  # Create screen object
+    hand = Hand()
 
     # Create the final RingMaze instance with the calculated path
     ring_maze = RingMaze(rings, sectors, screen, target, None)
     ball = Ball(WINDOW_SIZE // 2, WINDOW_SIZE // 2, 10, RED, screen, ring_maze)
-    game = MazeGame(ring_maze, ball, screen)
-    search = Search(ring_maze, start, target)
+    game = MazeGame(ring_maze, ball, screen, hand)
+    #search = Search(ring_maze, start, target) #crashes game for now
+
     game.run_game_loop()
     pygame.quit()
 
