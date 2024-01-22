@@ -251,27 +251,30 @@ class Search:
         #target is outer wall opening
         #manhattan dist kind of the same? Sum of how many outwards and how many across
         queue = [self.start]
-        visited = []
+        visited = set() #make this a set for faster membership test
+        last_cell = {} # dictionary to track the route taken
 
         while len(queue) > 0:
             current_cell = queue.pop(0)
-            if current_cell != self.target:
-                if current_cell not in visited:
-                    visited.append(current_cell)
-                for next_cell in self.maze.get_neighbours(*current_cell): #* to unpack tuple
-                    if next_cell not in visited:
-                        g_score = self.manhattan_distance(self.start, current_cell)
-                        h_score = self.manhattan_distance(next_cell, self.target)
-                        f_score = g_score + h_score
+            print(f"Processing cell: {current_cell}")  # Debug print
+            if current_cell == self.target:
+                print("Target reached, reconstructing route")  # Debug print
+                return self.reconstruct_route(last_cell, current_cell)  # Use the new method for path reconstruction
 
-                    if next_cell not in queue:
-                        #parent and score setting?
-                        pass
+            visited.add(current_cell)
 
-            else:
-                break
+            for next_cell in self.maze.get_neighbours(*current_cell):
+                if next_cell in visited:
+                    continue
 
-            #draw path
+                visited.add(next_cell)
+                last_cell[next_cell] = current_cell
+
+                if next_cell not in queue:
+                    queue.append(next_cell)
+
+            print(f"Queue size: {len(queue)}")  # Debug print
+        return []  # Return an empty list if no path is found
 
     def manhattan_distance(self, cell1, cell2): #manhattan distance analogy
         ring1, sector1 = cell1
@@ -288,6 +291,13 @@ class Search:
         # The Manhattan distance is the sum of the radial and angular distances
         return radial_distance + angular_distance
 
+    def reconstruct_route(self, came_from_cell, current_cell):
+        route = []
+        while current_cell in came_from_cell:
+            route.append(current_cell)
+            current = came_from_cell[current_cell]
+        route.append(self.start)  # Append the start node at the end
+        return route[::-1]  # Return the path in start-to-target order
 
 class Flashlight:
     def __init__(self, screen, size, radius, alpha=200):
