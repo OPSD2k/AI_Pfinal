@@ -243,6 +243,8 @@ class Search:
         self.maze = maze
         self.start = start
         self.target = target
+        #search once right at beginning of game
+        self.a_star()
 
     def a_star(self):
         #start is centre
@@ -256,7 +258,7 @@ class Search:
             if current_cell != self.target:
                 if current_cell not in visited:
                     visited.append(current_cell)
-                for next_cell in current_cell.maze.get_neighbours():
+                for next_cell in self.maze.get_neighbours(*current_cell): #* to unpack tuple
                     if next_cell not in visited:
                         g_score = self.manhattan_distance(self.start, current_cell)
                         h_score = self.manhattan_distance(next_cell, self.target)
