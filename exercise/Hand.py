@@ -13,13 +13,6 @@ class Hand:
         # Set up camera
         self.cap = cv2.VideoCapture(0)
 
-        # # Global variable to store the rotation angle
-        # rotation_angle = 0
-        # # update for global use
-        # def update_rotation_angle(new_angle):
-        #     global rotation_angle
-        #     rotation_angle = new_angle
-
     def calculate_angle(self, center_x, center_y, point):
         # Calculate angle between a center point and another point
         angle = math.atan2(point.y - center_y, point.x - center_x)
@@ -40,6 +33,41 @@ class Hand:
 
         return rotation_angle, wrist_x, wrist_y
 
+    #process only one frame per call, since this is called in game loop
+    def process_frame(self):
+        success, image = self.cap.read()
+        if not success:
+            print("Ignoring empty camera frame.")
+
+        else:
+            with self.mp_hands.Hands(
+                    model_complexity=0,
+                    min_detection_confidence=0.5,
+                    min_tracking_confidence=0.5) as hands:
+                # Pre-process frame
+                image.flags.writeable = False
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                results = hands.process(image)
+
+                # Post-process the Frame
+                image.flags.writeable = True
+                image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+                image_height, image_width, _ = image.shape
+
+                if results.multi_hand_landmarks:
+                    for hand_landmarks in results.multi_hand_landmarks:
+                        wrist = hand_landmarks.landmark[self.mp_hands.HandLandmark.WRIST]
+                        middle_tip = hand_landmarks.landmark[self.mp_hands.HandLandmark.MIDDLE_FINGER_TIP]
+
+                        # Calculate rotation
+                        rotation_angle, wrist_x, wrist_y = self.calculate_rotation(wrist, middle_tip, image_width,
+                                                                                   image_height)
+                        return rotation_angle  # Return the rotation angle for the current frame
+
+
+
+    """
     def process_frame(self):
         # Process frames in loops
         with self.mp_hands.Hands(
@@ -75,16 +103,6 @@ class Hand:
                         middle_tip = hand_landmarks.landmark[self.mp_hands.HandLandmark.MIDDLE_FINGER_TIP]
                         wrist_x = int(wrist.x * image_width)
                         wrist_y = int(wrist.y * image_height)
-
-                        """
-                        # Draw hand landmarks.
-                        mp_drawing.draw_landmarks(
-                            image,
-                            hand_landmarks,
-                            mp_hands.HAND_CONNECTIONS,
-                            mp_drawing_styles.get_default_hand_landmarks_style(),
-                            mp_drawing_styles.get_default_hand_connections_style())
-                        """
 
                         # Get landmarks for fingertips
                         index_tip = hand_landmarks.landmark[self.mp_hands.HandLandmark.INDEX_FINGER_TIP]
@@ -124,3 +142,4 @@ class Hand:
                 if cv2.waitKey(5) & 0xFF == 27:
                     break
         cap.release()
+        """

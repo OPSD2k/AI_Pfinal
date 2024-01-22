@@ -4,7 +4,7 @@ import heapq
 import math
 import numpy as np
 
-from Hand import Hand
+from hand import Hand
 
 # Constants
 WHITE = (255, 255, 255)
@@ -22,24 +22,24 @@ class Ball:
         self.radius = radius
         self.colour = colour
         self.vel_y = 0  # vertical velocity
-        self.acc_g = 0.5  # gravity
-        self.dt = 0.1  # simulation speed
+        self.acc_g = 40  # gravity
+        #self.dt = 0.1  # simulation speed
         self.screen = screen
         self.fall = True
         self.falls_number = 0
         self.maze = maze
 
-    def update(self):
+    def update(self, dt):
         #print(self.fall)
-        self.move()
+        self.move(dt)
         self.draw()
 
-    def move(self):
+    def move(self, dt):
         self.collision()
         #self.check_for_fall()
         if self.fall:
-            self.vel_y += self.acc_g * self.dt
-            self.y += self.vel_y * self.dt
+            self.vel_y += self.acc_g * dt
+            self.y += self.vel_y * dt
 
 
     def collision(self):
@@ -324,7 +324,7 @@ class Flashlight:
 
 
 class MazeGame:
-    def __init__(self, maze, ball, screen, hand):
+    def __init__(self, maze, ball, screen, hand, frame_rate):
         self.last_mouse_x = None  # first mouse position
         self.ball = ball
         self.maze = maze
@@ -332,10 +332,15 @@ class MazeGame:
         self.hand = hand
         pygame.display.set_caption("Ring-Shaped Maze Solver")
         self.flashlight = Flashlight(screen, (WINDOW_SIZE, WINDOW_SIZE), 70)  # Adjust radius as needed
+        self.frame_rate = frame_rate
 
     def run_game_loop(self):
+        clock = pygame.time.Clock() #make game speed independent of framerate
         running = True
+
         while running:
+            dt = clock.tick(self.frame_rate) / 1000.0
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -346,15 +351,15 @@ class MazeGame:
 
             #handle hand rotation input every frame
             rotation_angle = self.hand.process_frame()
-            print(f"Rotation Angle: {rotation_angle}")
-            self.maze.set_rotation(rotation_angle) #copy hand rotation for maze
-
+            if rotation_angle is not None: #passing none messes up maze rotation
+                print(f"Rotation Angle: {rotation_angle}")
+                self.maze.set_rotation(rotation_angle) #copy hand rotation for maze
 
             # Clear the screen and draw the maze and ball
             self.screen.fill(BLACK)
             self.maze.draw_maze()
 
-            self.ball.update()
+            self.ball.update(dt) # framerate thing in here
 
             # Draw the flashlight effect
             self.flashlight.draw((int(self.ball.x), int(self.ball.y)))
@@ -390,6 +395,7 @@ class MazeGame:
 # Main function
 def main():
     pygame.init()
+    frame_rate = 60 # frames per second
     size = 30  # Size of the maze
     start = (0, 0)  # Start position
     end = (size - 1, size - 1)  # End position
@@ -404,7 +410,7 @@ def main():
     # Create the final RingMaze instance with the calculated path
     ring_maze = RingMaze(rings, sectors, screen, target, None)
     ball = Ball(WINDOW_SIZE // 2, WINDOW_SIZE // 2, 10, RED, screen, ring_maze)
-    game = MazeGame(ring_maze, ball, screen, hand)
+    game = MazeGame(ring_maze, ball, screen, hand, frame_rate)
     #search = Search(ring_maze, start, target) #crashes game for now
 
     game.run_game_loop()
