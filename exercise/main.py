@@ -248,7 +248,44 @@ class Search:
         #start is centre
         #target is outer wall opening
         #manhattan dist kind of the same? Sum of how many outwards and how many across
-        pass
+        queue = [self.start]
+        visited = []
+
+        while len(queue) > 0:
+            current_cell = queue.pop(0)
+            if current_cell != self.target:
+                if current_cell not in visited:
+                    visited.append(current_cell)
+                for next_cell in current_cell.maze.get_neighbours():
+                    if next_cell not in visited:
+                        g_score = self.manhattan_distance(self.start, current_cell)
+                        h_score = self.manhattan_distance(next_cell, self.target)
+                        f_score = g_score + h_score
+
+                    if next_cell not in queue:
+                        #parent and score setting?
+                        pass
+
+            else:
+                break
+
+            #draw path
+
+    def manhattan_distance(self, cell1, cell2): #manhattan distance analogy
+        ring1, sector1 = cell1
+        ring2, sector2 = cell2
+
+        radial_distance = abs(ring1 - ring2)
+
+        # The angular distance is the minimum of the direct distance and the wrap-around distance
+        angular_distance = min(
+            abs(sector1 - sector2),
+            self.maze.sectors - abs(sector1 - sector2)
+        )
+
+        # The Manhattan distance is the sum of the radial and angular distances
+        return radial_distance + angular_distance
+
 
 class Flashlight:
     def __init__(self, screen, size, radius, alpha=200):
@@ -293,7 +330,7 @@ class MazeGame:
             # Clear the screen and draw the maze and ball
             self.screen.fill(BLACK)
             self.maze.draw_maze()
-            
+
             self.ball.update()
 
             # Draw the flashlight effect
