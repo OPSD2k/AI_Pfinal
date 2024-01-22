@@ -74,9 +74,10 @@ class Ball:
 
 
 class RingMaze:
-    def __init__(self, rings, sectors, screen, path=None):
+    def __init__(self, rings, sectors, screen, target, path=None):
         self.rings = rings
         self.sectors = sectors
+        self.target = target
         self.maze = [[{'wall': True, 'radial_walls': [True, True]} for _ in range(sectors)] for _ in range(rings)]
         self.generate_maze()
         self.screen = screen
@@ -115,24 +116,6 @@ class RingMaze:
         end_point = (center_x + outer_radius * math.cos(angle), center_y + outer_radius * math.sin(angle))
         pygame.draw.line(self.screen, BLACK, start_point, end_point, thickness)
 
-    def draw_path(self):
-        center = (WINDOW_SIZE // 2, WINDOW_SIZE // 2)
-        # Define the path thickness
-        path_thickness = WINDOW_SIZE // (4 * self.rings)
-        for i in range(len(self.path) - 1):
-            start = self.path[i]
-            end = self.path[i + 1]
-            # Calculate angles for the midpoint of each sector
-            start_angle = (start[1] * (360 / self.sectors) + (180 / self.sectors)) % 360
-            end_angle = (end[1] * (360 / self.sectors) + (180 / self.sectors)) % 360
-            # Calculate the positions for the start and end sectors
-        # start_pos = (center[0] + inner_radius * math.cos(math.radians(start_angle)),
-        #               center[1] + inner_radius * math.sin(math.radians(start_angle)))
-        #  end_pos = (center[0] + outer_radius * math.cos(math.radians(end_angle)),
-        #             center[1] + outer_radius * math.sin(math.radians(end_angle)))
-        # Draw line for the path
-        # pygame.draw.line(self.screen, GREEN, start_pos, end_pos, path_thickness)
-
     def get_sector_info(self, ring, sector):
         return self.maze[ring][sector]
 
@@ -162,7 +145,9 @@ class RingMaze:
         # self.maze[8][1]['wall'] = False
 
         # open a random wall in the outer ring to make an exit
-        self.maze[self.rings - 1][random.randint(0, self.sectors - 1)]['wall'] = False
+        exit_ring = self.rings - 1
+        exit_sector = random.randint(0, self.sectors - 1)
+        self.maze[self.target[0]][self.target[1]]['wall'] = False
 
         # self.aldous_broder_maze()
         self.example_maze()
@@ -253,47 +238,17 @@ class RingMaze:
         self.rotation_angle %= 360
 
 
-class AStarSolver:
-    def __init__(self, maze):
+class Search:
+    def __init__(self, maze, start, target):
         self.maze = maze
+        self.start = start
+        self.target = target
 
-    def find_path(self, start, end):
-        open_set = []
-        heapq.heappush(open_set, (0, start))
-        came_from = {}
-        g_score = {start: 0}
-        f_score = {start: self.calculate_heuristic(start, end)}
-
-        while open_set:
-            current = heapq.heappop(open_set)[1]
-            if current == end:
-                return self.reconstruct_path(came_from, current)
-
-            for neighbour in self.maze.get_neighbours(*current):
-                if self.maze.is_wall(*neighbour):
-                    continue
-                tentative_g_score = g_score[current] + 1
-                if tentative_g_score < g_score.get(neighbour, float("inf")):
-                    came_from[neighbour] = current
-                    g_score[neighbour] = tentative_g_score
-                    f_score[neighbour] = tentative_g_score + self.calculate_heuristic(neighbour, end)
-                    if neighbour not in [i[1] for i in open_set]:
-                        heapq.heappush(open_set, (f_score[neighbour], neighbour))
-        return []
-
-    def calculate_heuristic(self, cell, end):
-        # Heuristic combining radial and angular distance
-        radial_diff = abs(cell[0] - end[0])
-        angular_diff = min(abs(cell[1] - end[1]), self.maze.sectors - abs(cell[1] - end[1]))
-        return radial_diff + angular_diff
-
-    def reconstruct_path(self, came_from, current):
-        path = []
-        while current in came_from:
-            path.append(current)
-            current = came_from[current]
-        path.append(current)
-        return path[::-1]  # Return reversed path
+    def a_star(self):
+        #start is centre
+        #target is outer wall opening
+        #manhattan dist kind of the same? Sum of how many outwards and how many across
+        pass
 
 class Flashlight:
     def __init__(self, screen, size, radius, alpha=200):
@@ -338,7 +293,7 @@ class MazeGame:
             # Clear the screen and draw the maze and ball
             self.screen.fill(BLACK)
             self.maze.draw_maze()
-            self.maze.draw_path()
+            
             self.ball.update()
 
             # Draw the flashlight effect
@@ -378,18 +333,18 @@ def main():
     size = 30  # Size of the maze
     start = (0, 0)  # Start position
     end = (size - 1, size - 1)  # End position
+    rings = 10
+    sectors = 10
+
+    target = (rings - 1, random.randint(0, sectors - 1))
 
     screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))  # Create screen object
 
-    # Create a temporary RingMaze instance for path calculation
-    temp_maze = RingMaze(10, 10, screen)  # rings, sectors
-    solver = AStarSolver(temp_maze)
-    path = solver.find_path(start, end)  # find the path using the solver
-
     # Create the final RingMaze instance with the calculated path
-    ring_maze = RingMaze(10, 10, screen, path)
+    ring_maze = RingMaze(rings, sectors, screen, target, None)
     ball = Ball(WINDOW_SIZE // 2, WINDOW_SIZE // 2, 10, RED, screen, ring_maze)
     game = MazeGame(ring_maze, ball, screen)
+    search = Search(ring_maze, start, target)
     game.run_game_loop()
     pygame.quit()
 
